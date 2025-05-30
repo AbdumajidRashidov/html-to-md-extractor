@@ -1,0 +1,75 @@
+{
+  "name": "html-to-md-extractor",
+  "version": "1.0.0",
+  "description": "Advanced HTML to Markdown converter with email-specific optimizations",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "npm run clean && rollup -c",
+    "build:watch": "npm run clean && rollup -c -w",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "prepublishOnly": "npm run lint && npm run test && npm run build"
+  },
+  "keywords": [
+    "html",
+    "markdown",
+    "converter",
+    "email",
+    "html-to-markdown",
+    "parser",
+    "extractor",
+    "typescript"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/html-to-md-extractor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/html-to-md-extractor/issues"
+  },
+  "homepage": "https://github.com/yourusername/html-to-md-extractor#readme",
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^18.19.109",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "eslint": "^8.57.1",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^30.0.0-beta.3",
+    "rimraf": "^6.0.1",
+    "rollup": "^3.29.5",
+    "rollup-plugin-typescript2": "^0.34.1",
+    "ts-jest": "^29.3.4",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "jsdom": "^21.1.2"
+  },
+  "peerDependenciesMeta": {
+    "jsdom": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}
