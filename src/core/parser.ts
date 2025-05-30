@@ -55,16 +55,16 @@ export class HTMLToMDParser {
       const document = this.domUtils.parseHTML(cleanedHtml);
       
       // Detect email context
-      this.emailContext = this.emailUtils.detectEmailContext(document);
+      this.emailContext = this.emailUtils.detectEmailContext(document as unknown as Document);
       
       // Extract metadata
-      const metadata = this.extractMetadata(document);
+      const metadata = this.extractMetadata(document as unknown as Document);
       
       // Convert to markdown
-      const markdown = this.processDocument(document);
+      const markdown = this.processDocument(document as unknown as Document);
       
       // Post-process markdown
-      const finalMarkdown = this.postProcess(markdown);
+      const finalMarkdown = this.postProcess(markdown as string);
 
       return {
         markdown: finalMarkdown,
