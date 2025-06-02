@@ -1,6 +1,6 @@
 {
   "name": "@abdumajid/html-to-md-extractor",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Advanced HTML to Markdown converter with email-specific optimizations",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
