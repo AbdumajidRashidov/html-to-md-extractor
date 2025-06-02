@@ -2,6 +2,15 @@
 
 import { ConversionOptions } from '../types';
 
+// Server-side node type constants
+const SERVER_NODE_TYPES = {
+  ELEMENT_NODE: 1,
+  TEXT_NODE: 3,
+  COMMENT_NODE: 8,
+  DOCUMENT_NODE: 9,
+  DOCUMENT_FRAGMENT_NODE: 11
+} as const;
+
 export interface Rule {
   apply(element: Element, childContent: string): string;
 }
@@ -10,6 +19,7 @@ export class BaseRules {
   private options: ConversionOptions;
   private rules: Map<string, Rule>;
   private ruleCache = new Map<string, any>();
+  private readonly nodeTypes = SERVER_NODE_TYPES;
 
   constructor(options: ConversionOptions) {
     this.options = options;
@@ -18,17 +28,12 @@ export class BaseRules {
   }
 
    public getRule(tagName: string): any {
-    // Check cache first
     if (this.ruleCache.has(tagName)) {
       return this.ruleCache.get(tagName);
     }
     
-    // Get rule from existing rules map
     const rule = this.rules.get(tagName);
-    
-    // Cache for future use (including null/undefined)
     this.ruleCache.set(tagName, rule);
-    
     return rule;
   }
 
@@ -42,7 +47,8 @@ export class BaseRules {
       this.rules.set(`h${i}`, {
         apply: (element: Element, childContent: string) => {
           const level = '#'.repeat(i);
-          return `\n${level} ${childContent.trim()}\n\n`;
+          const content = childContent.trim();
+          return `\n${level} ${content}\n\n`;
         }
       });
     }
@@ -50,11 +56,13 @@ export class BaseRules {
     // Paragraphs
     this.rules.set('p', {
       apply: (element: Element, childContent: string) => {
-        return `\n${childContent.trim()}\n\n`;
+        const content = childContent.trim();
+        if (!content) return '';
+        return `\n${content}\n\n`;
       }
     });
 
-    // Line breaks
+    // Line breaks - FIXED: Now properly preserves line breaks
     this.rules.set('br', {
       apply: (element: Element, childContent: string) => {
         return '\n';
@@ -71,51 +79,81 @@ export class BaseRules {
     // Strong/Bold
     this.rules.set('strong', {
       apply: (element: Element, childContent: string) => {
-        return `${this.options.strongDelimiter}${childContent}${this.options.strongDelimiter}`;
+        if (!childContent.trim()) return '';
+        return `${this.options.strongDelimiter}${childContent.trim()}${this.options.strongDelimiter}`;
       }
     });
 
     this.rules.set('b', {
       apply: (element: Element, childContent: string) => {
-        return `${this.options.strongDelimiter}${childContent}${this.options.strongDelimiter}`;
+        if (!childContent.trim()) return '';
+        return `${this.options.strongDelimiter}${childContent.trim()}${this.options.strongDelimiter}`;
       }
     });
 
     // Emphasis/Italic
     this.rules.set('em', {
       apply: (element: Element, childContent: string) => {
-        return `${this.options.emDelimiter}${childContent}${this.options.emDelimiter}`;
+        if (!childContent.trim()) return '';
+        return `${this.options.emDelimiter}${childContent.trim()}${this.options.emDelimiter}`;
       }
     });
 
     this.rules.set('i', {
       apply: (element: Element, childContent: string) => {
-        return `${this.options.emDelimiter}${childContent}${this.options.emDelimiter}`;
+        if (!childContent.trim()) return '';
+        return `${this.options.emDelimiter}${childContent.trim()}${this.options.emDelimiter}`;
       }
     });
 
     // Code
     this.rules.set('code', {
       apply: (element: Element, childContent: string) => {
-        if (childContent.includes('`')) {
-          return `\`\`${childContent}\`\``;
+        if (!childContent.trim()) return '';
+        const content = childContent.trim();
+        
+        // Check if this is inside a pre block - if so, don't add backticks
+        let parent = element.parentElement;
+        while (parent) {
+          if (parent.tagName?.toLowerCase() === 'pre') {
+            return content; // Return raw content, pre will handle formatting
+          }
+          parent = parent.parentElement;
         }
-        return `\`${childContent}\``;
+        
+        if (content.includes('`')) {
+          return `\`\`${content}\`\``;
+        }
+        return `\`${content}\``;
       }
     });
 
-    // Preformatted text
+    // Preformatted text - FIXED: Now properly handles indented vs fenced
     this.rules.set('pre', {
       apply: (element: Element, childContent: string) => {
-        const codeElement = element.querySelector('code');
-        const language = codeElement?.getAttribute('class')?.replace('language-', '') || '';
+        const content = childContent.trim();
+        if (!content) return '';
         
-        if (this.options.codeBlockStyle === 'fenced') {
-          return `\n${this.options.fence}${language}\n${childContent}\n${this.options.fence}\n\n`;
-        } else {
-          const lines = childContent.split('\n');
+        // Check for language
+        const codeElement = element.querySelector ? element.querySelector('code') : null;
+        let language = '';
+        
+        if (codeElement?.getAttribute) {
+          const className = codeElement.getAttribute('class') || '';
+          const match = className.match(/language-(\w+)/);
+          if (match) {
+            language = match[1];
+          }
+        }
+        
+        if (this.options.codeBlockStyle === 'indented') {
+          // Indented style: each line gets 4 spaces
+          const lines = content.split('\n');
           const indentedLines = lines.map(line => `    ${line}`);
           return `\n${indentedLines.join('\n')}\n\n`;
+        } else {
+          // Fenced style (default)
+          return `\n\`\`\`${language}\n${content}\n\`\`\`\n\n`;
         }
       }
     });
@@ -123,29 +161,38 @@ export class BaseRules {
     // Links
     this.rules.set('a', {
       apply: (element: Element, childContent: string) => {
-        const href = element.getAttribute('href');
-        const title = element.getAttribute('title');
+        const href = element.getAttribute ? element.getAttribute('href') : null;
+        const title = element.getAttribute ? element.getAttribute('title') : null;
         
         if (!href) return childContent;
+        if (!childContent.trim()) return '';
+
+        // Handle mailto links specially
+        if (href.startsWith('mailto:')) {
+          const email = href.replace('mailto:', '').split('?')[0]; // Remove query params
+          // If link text is the same as email, use angle brackets
+          if (childContent.trim() === email) {
+            return `<${email}>`;
+          }
+        }
 
         if (this.options.linkStyle === 'inlined') {
           if (title) {
-            return `[${childContent}](${href} "${title}")`;
+            return `[${childContent.trim()}](${href} "${title}")`;
           }
-          return `[${childContent}](${href})`;
+          return `[${childContent.trim()}](${href})`;
         }
 
-        // Referenced links (simplified implementation)
-        return `[${childContent}](${href})`;
+        return `[${childContent.trim()}](${href})`;
       }
     });
 
     // Images
     this.rules.set('img', {
       apply: (element: Element, childContent: string) => {
-        const src = element.getAttribute('src') || '';
-        const alt = element.getAttribute('alt') || '';
-        const title = element.getAttribute('title');
+        const src = element.getAttribute ? (element.getAttribute('src') || '') : '';
+        const alt = element.getAttribute ? (element.getAttribute('alt') || '') : '';
+        const title = element.getAttribute ? element.getAttribute('title') : null;
 
         if (title) {
           return `![${alt}](${src} "${title}")`;
@@ -157,37 +204,60 @@ export class BaseRules {
     // Lists
     this.rules.set('ul', {
       apply: (element: Element, childContent: string) => {
-        return `\n${childContent}\n`;
+        const content = childContent.trim();
+        if (!content) return '';
+        return `\n${content}\n`;
       }
     });
 
     this.rules.set('ol', {
       apply: (element: Element, childContent: string) => {
-        return `\n${childContent}\n`;
+        const content = childContent.trim();
+        if (!content) return '';
+        return `\n${content}\n`;
       }
     });
 
     this.rules.set('li', {
       apply: (element: Element, childContent: string) => {
-        const parent = element.parentElement;
-        const isOrdered = parent?.tagName.toLowerCase() === 'ol';
+        const content = childContent.trim();
+        if (!content) return '';
         
-        if (isOrdered) {
-          const siblings = Array.from(parent!.children);
+        const parent = element.parentElement;
+        const isOrdered = parent?.tagName?.toLowerCase() === 'ol';
+        
+        if (isOrdered && parent) {
+          const siblings = parent.children ? Array.from(parent.children) : [];
           const index = siblings.indexOf(element) + 1;
-          return `${index}. ${childContent.trim()}\n`;
+          return `${index}. ${content}\n`;
         } else {
-          return `${this.options.bulletListMarker} ${childContent.trim()}\n`;
+          // Use the configured bullet marker
+          const marker = this.options.bulletListMarker || '-';
+          return `${marker} ${content}\n`;
         }
       }
     });
 
-    // Blockquotes
+    // Blockquotes - FIXED: Now properly handles nested blockquotes
     this.rules.set('blockquote', {
       apply: (element: Element, childContent: string) => {
-        const lines = childContent.trim().split('\n');
+        const content = childContent.trim();
+        if (!content) return '';
+        
+        // Count nesting level by checking parent blockquotes
+        let nestingLevel = 0;
+        let parent = element.parentElement;
+        while (parent) {
+          if (parent.tagName?.toLowerCase() === 'blockquote') {
+            nestingLevel++;
+          }
+          parent = parent.parentElement;
+        }
+        
+        const prefix = '> '.repeat(nestingLevel + 1);
+        const lines = content.split('\n');
         const quotedLines = lines.map(line => 
-          line.trim() ? `> ${line}` : '>'
+          line.trim() ? `${prefix}${line}` : prefix.trim()
         );
         return `\n${quotedLines.join('\n')}\n\n`;
       }
@@ -200,7 +270,6 @@ export class BaseRules {
       }
     });
 
-    // Table rows and cells are handled within table conversion
     this.rules.set('tr', {
       apply: (element: Element, childContent: string) => childContent
     });
@@ -216,8 +285,9 @@ export class BaseRules {
     // Divs (generic containers)
     this.rules.set('div', {
       apply: (element: Element, childContent: string) => {
-        // Add some spacing for block-level divs
-        return `${childContent}\n`;
+        const content = childContent.trim();
+        if (!content) return '';
+        return `${content}\n`;
       }
     });
 
@@ -229,107 +299,123 @@ export class BaseRules {
     // Deleted text
     this.rules.set('del', {
       apply: (element: Element, childContent: string) => {
-        return `~~${childContent}~~`;
+        if (!childContent.trim()) return '';
+        return `~~${childContent.trim()}~~`;
       }
     });
 
     this.rules.set('s', {
       apply: (element: Element, childContent: string) => {
-        return `~~${childContent}~~`;
+        if (!childContent.trim()) return '';
+        return `~~${childContent.trim()}~~`;
       }
     });
 
     // Inserted text
     this.rules.set('ins', {
       apply: (element: Element, childContent: string) => {
-        return `<ins>${childContent}</ins>`;
+        if (!childContent.trim()) return '';
+        return `<ins>${childContent.trim()}</ins>`;
       }
     });
 
     // Underlined text
     this.rules.set('u', {
       apply: (element: Element, childContent: string) => {
-        return `<u>${childContent}</u>`;
+        if (!childContent.trim()) return '';
+        return `<u>${childContent.trim()}</u>`;
       }
     });
 
     // Small text
     this.rules.set('small', {
       apply: (element: Element, childContent: string) => {
-        return `<small>${childContent}</small>`;
+        if (!childContent.trim()) return '';
+        return `<small>${childContent.trim()}</small>`;
       }
     });
 
     // Subscript and superscript
     this.rules.set('sub', {
       apply: (element: Element, childContent: string) => {
-        return `<sub>${childContent}</sub>`;
+        if (!childContent.trim()) return '';
+        return `<sub>${childContent.trim()}</sub>`;
       }
     });
 
     this.rules.set('sup', {
       apply: (element: Element, childContent: string) => {
-        return `<sup>${childContent}</sup>`;
+        if (!childContent.trim()) return '';
+        return `<sup>${childContent.trim()}</sup>`;
       }
     });
   }
 
-  private convertTable(table: Element): string {
+  private convertTable(table: any): string {
+    if (!table.querySelectorAll) return '';
+    
     const rows = table.querySelectorAll('tr');
     if (rows.length === 0) return '';
 
     let markdown = '\n';
     let hasHeaders = false;
 
-    rows.forEach((row, rowIndex) => {
-      const cells = row.querySelectorAll('td, th');
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      const row = rows[rowIndex];
+      const cells = row.querySelectorAll ? row.querySelectorAll('td, th') : [];
       const cellContents: string[] = [];
 
-      cells.forEach(cell => {
+      for (let cellIndex = 0; cellIndex < cells.length; cellIndex++) {
+        const cell = cells[cellIndex];
         let content = this.getCellContent(cell);
         content = content.replace(/\|/g, '\\|'); // Escape pipes
         content = content.replace(/\n/g, ' '); // Replace newlines with spaces
-        cellContents.push(content.trim());
-      });
+        content = content.trim();
+        
+        // FIXED: Handle empty cells properly - use single space instead of multiple spaces
+        cellContents.push(content || ' ');
+      }
 
-      if (cellContents.length === 0) return;
+      if (cellContents.length === 0) continue;
 
       // Check if this row has headers
-      if (rowIndex === 0 && row.querySelector('th')) {
+      if (rowIndex === 0 && row.querySelector && row.querySelector('th')) {
         hasHeaders = true;
       }
 
-      // Add the row
-      markdown += `| ${cellContents.join(' | ')} |\n`;
+      // Add the row - FIXED: Single space for empty cells
+      const cellsFormatted = cellContents.map(cell => cell === ' ' ? ' ' : cell);
+      markdown += `| ${cellsFormatted.join(' | ')} |\n`;
 
       // Add separator after header row
       if (rowIndex === 0 && (hasHeaders || this.looksLikeHeaders(cellContents))) {
         const separator = cellContents.map(() => '---').join(' | ');
         markdown += `| ${separator} |\n`;
       }
-    });
+    }
 
     return markdown + '\n';
   }
 
-  private getCellContent(cell: Element): string {
-    // Get text content and preserve some basic formatting
+  private getCellContent(cell: any): string {
     let content = '';
     
-    for (const node of Array.from(cell.childNodes)) {
-      if (node.nodeType === Node.TEXT_NODE) {
+    const childNodes = cell.childNodes || [];
+    for (let i = 0; i < childNodes.length; i++) {
+      const node = childNodes[i];
+      if (node.nodeType === this.nodeTypes.TEXT_NODE) {
         content += node.textContent || '';
-      } else if (node.nodeType === Node.ELEMENT_NODE) {
-        const element = node as Element;
-        const tagName = element.tagName.toLowerCase();
+      } else if (node.nodeType === this.nodeTypes.ELEMENT_NODE) {
+        const element = node;
+        const tagName = element.tagName?.toLowerCase() || '';
         
         // Preserve some formatting in tables
         if (tagName === 'strong' || tagName === 'b') {
-          content += `**${element.textContent}**`;
+          content += `**${element.textContent || ''}**`;
         } else if (tagName === 'em' || tagName === 'i') {
-          content += `*${element.textContent}*`;
+          content += `*${element.textContent || ''}*`;
         } else if (tagName === 'code') {
-          content += `\`${element.textContent}\``;
+          content += `\`${element.textContent || ''}\``;
         } else {
           content += element.textContent || '';
         }
@@ -340,7 +426,6 @@ export class BaseRules {
   }
 
   private looksLikeHeaders(cellContents: string[]): boolean {
-    // Heuristic: cells that are short and look like headers
     return cellContents.every(content => {
       const trimmed = content.trim();
       return trimmed.length > 0 && 

@@ -14,17 +14,17 @@
     "clean": "rimraf dist",
     "build": "npm run clean && rollup -c",
     "build:watch": "npm run clean && rollup -c -w",
-    "test": "echo 'No test required'",
-    "test:watch": "echo 'No test:watch required'",
-    "test:watch:changed": "echo 'No test:watch:changed required'",
-    "test:coverage": "echo 'No test:coverage required'",
-    "test:ci": "echo 'No test:ci required'",
-    "lint": "echo 'No linting required'",
-    "lint:fix": "echo 'No linting required'",
-    "type-check": "echo 'No type-check required'",
-    "type-check:watch": "echo 'No type-check:watch required'",
-    "prepublishOnly": "echo 'No prepublishOnly required'",
-    "dev": "echo 'No dev required'"
+    "test": "jest --config jest.config.js",
+    "test:watch": "jest --config jest.config.js --watchAll",
+    "test:watch:changed": "jest --config jest.config.js --watch",
+    "test:coverage": "jest --config jest.config.js --coverage",
+    "test:ci": "jest --config jest.config.js --coverage --watchAll=false",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "type-check": "tsc --noEmit -p tsconfig.json",
+    "type-check:watch": "npm run type-check -- --watch",
+    "prepublishOnly": "npm run lint && npm run type-check && npm run test:ci && npm run build",
+    "dev": "npm run build:watch"
   },
   "keywords": [
     "html",
@@ -36,7 +36,7 @@
     "extractor",
     "typescript"
   ],
-  "author": "Abdumajid Rashidov <abdumajid.numeo@gmail.com>",
+  "author": "Abdumajid Rashidov",
   "license": "MIT",
   "repository": {
     "type": "git",
