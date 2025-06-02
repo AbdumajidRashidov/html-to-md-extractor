@@ -6,6 +6,7 @@ import { BaseRules } from '../rules/base-rules';
 import { DOMUtils } from '../utils/dom-utils';
 import { EmailUtils } from '../utils/email-utils';
 import { TextUtils } from '../utils/text-utils';
+import { Converter } from './converter';
 
 export class HTMLToMDParser {
   private options: ConversionOptions;
@@ -46,6 +47,7 @@ export class HTMLToMDParser {
     this.emailContext = this.initializeEmailContext();
   }
 
+  private converterInstance?: Converter;
   public convert(html: string): ConversionResult {
     try {
       // Sanitize and prepare HTML
@@ -73,6 +75,17 @@ export class HTMLToMDParser {
     } catch (error: any) {
       throw new Error(`HTML to Markdown conversion failed: ${error.message}`);
     }
+    finally {
+        this.cleanup();
+    }
+  }
+
+  private cleanup(): void {
+    if (this.converterInstance) {
+      this.converterInstance.cleanup();
+    }
+    // Clear any other accumulated state
+    this.emailContext = this.initializeEmailContext();
   }
 
   private preprocessHTML(html: string): string {

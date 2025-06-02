@@ -1,14 +1,37 @@
 // src/utils/text-utils.ts
 
 export class TextUtils {
+    private static regexCache = new Map<string, RegExp>();
     escapeMarkdown(text: string): string {
-      // Escape markdown special characters
-      return text.replace(/([\\`*_{}[\]()#+\-.!|~])/g, '\\$1');
+        if (!text) return text;
+        
+        // Use cached regex to avoid recompilation
+        const escapeRegex = this.getCachedRegex('[\\\\`*_{}[\\]()#+\\-.!|~]', 'g');
+        return text.replace(escapeRegex, '\\$1');
+    }
+
+    private getCachedRegex(pattern: string, flags?: string): RegExp {
+        const key = `${pattern}|${flags || ''}`;
+        let regex = TextUtils.regexCache.get(key);
+        
+        if (!regex) {
+          regex = new RegExp(pattern, flags);
+          TextUtils.regexCache.set(key, regex);
+        }
+        
+        return regex;
+    }
+
+    static clearRegexCache(): void {
+        TextUtils.regexCache.clear();
     }
   
     unescapeMarkdown(text: string): string {
-      // Remove escape characters
-      return text.replace(/\\([\\`*_{}[\]()#+\-.!|~])/g, '$1');
+      if (!text) return text;
+      
+      // Use cached regex to avoid recompilation
+      const unescapeRegex = this.getCachedRegex('\\([\\`*_{}[\\]()#+\\-.!|~])', 'g');
+      return text.replace(unescapeRegex, '$1');
     }
   
     decodeHTMLEntities(html: string): string {

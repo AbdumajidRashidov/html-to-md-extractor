@@ -9,9 +9,42 @@ import { ConversionOptions, ConversionResult } from './types';
  */
 export class HTMLToMarkdownExtractor {
   private parser: HTMLToMDParser;
+  private static readonly MAX_BATCH_SIZE = 100;
 
   constructor(options: ConversionOptions = {}) {
     this.parser = new HTMLToMDParser(options);
+  }
+
+  public async convertBatch(htmlArray: string[]): Promise<ConversionResult[]> {
+    const results: ConversionResult[] = [];
+    
+    // Process in smaller batches to prevent memory accumulation
+    for (let i = 0; i < htmlArray.length; i += HTMLToMarkdownExtractor.MAX_BATCH_SIZE) {
+      const batch = htmlArray.slice(i, i + HTMLToMarkdownExtractor.MAX_BATCH_SIZE);
+      
+      const batchResults = batch.map(html => {
+        try {
+          return this.convert(html);
+        } catch (error) {
+          return {
+            markdown: '',
+            metadata: { errors: [(error as Error).message] }
+          };
+        }
+      });
+      
+      results.push(...batchResults);
+      
+      // Force garbage collection between batches if available
+      if (global.gc) {
+        global.gc();
+      }
+      
+      // Yield control to prevent blocking
+      await new Promise(resolve => setImmediate(resolve));
+    }
+    
+    return results;
   }
 
   /**
@@ -37,6 +70,13 @@ export class HTMLToMarkdownExtractor {
     const tempParser = new HTMLToMDParser(options);
     return tempParser.convert(html);
   }
+
+  public dispose(): void {
+    // Clean up any resources
+    if (this.parser) {
+      (this.parser as any).cleanup?.();
+    }
+  }
 }
 
 /**
@@ -58,6 +98,9 @@ export function htmlToMarkdown(html: string, options: ConversionOptions = {}): C
  * @returns ConversionResult with markdown and metadata
  */
 export function emailToMarkdown(emailHtml: string, options: ConversionOptions = {}): ConversionResult {
+    
+  const cleanedHtml = removeMemoryIntensiveElements(emailHtml);
+
   const emailOptions: ConversionOptions = {
     preserveEmailHeaders: true,
     handleEmailSignatures: true,
@@ -71,7 +114,19 @@ export function emailToMarkdown(emailHtml: string, options: ConversionOptions = 
   };
 
   const extractor = new HTMLToMarkdownExtractor(emailOptions);
-  return extractor.convert(emailHtml);
+  return extractor.convert(cleanedHtml);
+}
+
+function removeMemoryIntensiveElements(html: string): string {
+    return html
+      // Remove large embedded images
+      .replace(/<img[^>]*src="data:image\/[^"]{1000,}"[^>]*>/gi, '[Large embedded image removed]')
+      // Remove excessive style blocks
+      .replace(/<style[^>]*>[\s\S]{5000,}?<\/style>/gi, '')
+      // Remove long script blocks
+      .replace(/<script[^>]*>[\s\S]{1000,}?<\/script>/gi, '')
+      // Limit very long attribute values
+      .replace(/(\w+)="[^"]{1000,}"/g, '$1="[Long attribute truncated]"');
 }
 
 // Export types for users

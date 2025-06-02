@@ -9,6 +9,7 @@ export interface Rule {
 export class BaseRules {
   private options: ConversionOptions;
   private rules: Map<string, Rule>;
+  private ruleCache = new Map<string, any>();
 
   constructor(options: ConversionOptions) {
     this.options = options;
@@ -16,8 +17,23 @@ export class BaseRules {
     this.initializeRules();
   }
 
-  public getRule(tagName: string): Rule | undefined {
-    return this.rules.get(tagName);
+   public getRule(tagName: string): any {
+    // Check cache first
+    if (this.ruleCache.has(tagName)) {
+      return this.ruleCache.get(tagName);
+    }
+    
+    // Get rule from existing rules map
+    const rule = this.rules.get(tagName);
+    
+    // Cache for future use (including null/undefined)
+    this.ruleCache.set(tagName, rule);
+    
+    return rule;
+  }
+
+  public clearCache(): void {
+    this.ruleCache.clear();
   }
 
   private initializeRules(): void {

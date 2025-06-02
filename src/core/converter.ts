@@ -4,6 +4,7 @@ import { EmailRules } from '../rules/email-rules';
 import { CustomRules } from '../rules/custom-rules';
 import { TextUtils } from '../utils/text-utils';
 import { DOMUtils } from '../utils/dom-utils';
+import { StringBuilder } from '../utils/string-utils';
 
 // Server-side node type constants - no dependency on browser globals
 const SERVER_NODE_TYPES = {
@@ -24,6 +25,7 @@ export class Converter {
   private linkReferences: Map<string, { url: string; title?: string }>;
   private linkCounter: number;
   private readonly nodeTypes = SERVER_NODE_TYPES;
+  private stringBuilder = new StringBuilder();
 
   constructor(options: ConversionOptions) {
     this.options = options;
@@ -100,7 +102,7 @@ export class Converter {
   }
 
   private processChildren(element: any, isEmailContent: boolean): string {
-    let result = '';
+    this.stringBuilder.clear(); // Reset for new operation
     const children = element.childNodes || [];
 
     for (let i = 0; i < children.length; i++) {
@@ -108,13 +110,13 @@ export class Converter {
       const converted = this.convertNode(child, isEmailContent);
       
       if (i > 0 && this.needsSpacing(children[i - 1], child)) {
-        result += ' ';
+        this.stringBuilder.append(' ');
       }
       
-      result += converted;
+      this.stringBuilder.append(converted);
     }
 
-    return result;
+    return this.stringBuilder.toString();
   }
 
   private needsSpacing(prevNode: any, currentNode: any): boolean {
@@ -162,5 +164,10 @@ export class Converter {
 
   public setOptions(options: ConversionOptions): void {
     this.options = { ...this.options, ...options };
+  }
+  public cleanup(): void {
+    this.linkReferences.clear();
+    this.linkCounter = 1;
+    this.stringBuilder.clear();
   }
 }
