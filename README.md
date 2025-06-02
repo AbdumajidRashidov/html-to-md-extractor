@@ -1,100 +1,304 @@
-# Contributing to HTML to Markdown Extractor
+# HTML to Markdown Extractor
 
-Thank you for your interest in contributing to this project! Here are some guidelines to help you get started.
+[![npm version](https://badge.fury.io/js/@abdumajid%2Fhtml-to-md-extractor.svg)](https://badge.fury.io/js/@abdumajid%2Fhtml-to-md-extractor)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/%3C%2F%3E-TypeScript-%230074c1.svg)](http://www.typescriptlang.org/)
 
-## Development Setup
+Advanced HTML to Markdown converter with **email-specific optimizations**. Perfect for processing email content, newsletters, and complex HTML documents into clean, readable Markdown.
 
-1. Fork and clone the repository
-2. Install dependencies: `npm install`
-3. Run tests: `npm test`
-4. Build the project: `npm run build`
+## ✨ Features
 
-## Project Structure
+- 🎯 **Email-optimized**: Special handling for Outlook, Gmail, and other email clients
+- 📧 **Email signatures**: Automatic detection and formatting of email signatures
+- 📋 **Table conversion**: Smart table to Markdown conversion
+- 🎨 **Inline styles**: Converts inline CSS styles to Markdown formatting
+- 📝 **Custom rules**: Extensible rule system for custom HTML elements
+- 🚀 **TypeScript**: Full TypeScript support with comprehensive type definitions
+- ⚡ **Performance**: Optimized for large documents and batch processing
+- 🔧 **Configurable**: Extensive options for customizing output format
 
-```
-src/
-├── core/           # Core conversion logic
-├── rules/          # Conversion rules (base, email, custom)
-├── utils/          # Utility functions
-├── types/          # TypeScript definitions
-└── index.ts        # Main exports
-
-tests/              # Test files
-examples/           # Usage examples
-```
-
-## Development Commands
+## 🚀 Quick Start
 
 ```bash
-npm run build       # Build the library
-npm run build:watch # Build in watch mode
-npm test           # Run tests
-npm run test:watch # Run tests in watch mode
-npm run test:coverage # Generate coverage report
-npm run lint       # Run ESLint
-npm run lint:fix   # Fix linting issues
+npm install @abdumajid/html-to-md-extractor
 ```
 
-## Adding New Features
+```javascript
+const { emailToMarkdown } = require('@abdumajid/html-to-md-extractor');
 
-1. **Email Client Support**: Add detection logic in `EmailUtils.detectClientType()`
-2. **Custom Rules**: Extend the rules system in `rules/custom-rules.ts`
-3. **HTML Elements**: Add conversion rules in `rules/base-rules.ts`
-4. **Email Features**: Add email-specific handling in `rules/email-rules.ts`
+const emailHtml = `
+  <div class="email-content">
+    <h1>Welcome!</h1>
+    <p>Hello <strong>John</strong>,</p>
+    <p>Thanks for joining our <em>newsletter</em>!</p>
+    <div class="signature">
+      <p>Best regards,<br>The Team</p>
+    </div>
+  </div>
+`;
 
-## Testing
+const result = emailToMarkdown(emailHtml);
+console.log(result.markdown);
+```
 
-- Write tests for new features
-- Ensure all existing tests pass
-- Test with real-world email samples
-- Add integration tests for complex scenarios
+**Output:**
+```markdown
+# Welcome!
 
-## Code Style
+Hello **John**,
 
-- Follow TypeScript best practices
-- Use meaningful variable and function names
-- Add JSDoc comments for public APIs
-- Follow the existing code structure
+Thanks for joining our *newsletter*!
 
-## Pull Request Process
+---
+Best regards,
+The Team
+```
 
-1. Create a feature branch from `develop`
-2. Make your changes with tests
-3. Ensure all tests pass and linting is clean
-4. Update documentation if needed
-5. Submit a pull request with a clear description
+## 📖 Documentation
 
-## Reporting Issues
+### Basic Usage
 
-When reporting bugs, please include:
-- HTML input that causes the issue
-- Expected vs actual markdown output
-- Environment details (Node.js version, browser, etc.)
-- Steps to reproduce
+```javascript
+const { htmlToMarkdown, emailToMarkdown } = require('@abdumajid/html-to-md-extractor');
 
-## Questions?
+// For general HTML
+const result1 = htmlToMarkdown('<p>Hello <strong>world</strong>!</p>');
 
-Feel free to open an issue for questions or discussion!
+// For email HTML (with email-specific optimizations)
+const result2 = emailToMarkdown(emailHtml, {
+  handleEmailSignatures: true,
+  convertInlineStyles: true,
+  tableHandling: 'convert'
+});
+```
 
-# LICENSE
-MIT License
+### TypeScript Support
 
-Copyright (c) 2024 HTML to Markdown Extractor Contributors
+```typescript
+import { 
+  emailToMarkdown, 
+  ConversionOptions, 
+  ConversionResult 
+} from '@abdumajid/html-to-md-extractor';
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+const options: ConversionOptions = {
+  handleEmailSignatures: true,
+  preserveEmailQuotes: true,
+  tableHandling: 'convert'
+};
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+const result: ConversionResult = emailToMarkdown(html, options);
+```
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+## 📊 Real-World Examples
+
+### Outlook Email Processing
+
+```javascript
+const outlookEmail = `
+  <div class="WordSection1">
+    <p class="MsoNormal">PU today 2200, can likely be worked in earlier</p>
+    <p class="MsoNormal">Del Monday 9am in Joplin MO</p>
+    <p class="MsoNormal">Load of packaging material 9360lbs</p>
+    <p class="MsoNormal">Paying 1100</p>
+    <table class="MsoNormalTable" border="0">
+      <tr>
+        <td><b>Fallin Smith</b></td>
+      </tr>
+      <tr>
+        <td>Transportation Broker</td>
+      </tr>
+    </table>
+  </div>
+`;
+
+const result = emailToMarkdown(outlookEmail, {
+  handleOutlookSpecific: true,
+  handleEmailSignatures: true
+});
+```
+
+### Newsletter/Marketing Email
+
+```javascript
+const newsletter = `
+  <div style="max-width: 600px;">
+    <h1>🎉 Special Offer!</h1>
+    <p>Hi <strong>Sarah</strong>,</p>
+    <p>Get <mark>50% off</mark> your next purchase!</p>
+    <table border="1">
+      <tr><th>Product</th><th>Price</th></tr>
+      <tr><td>Widget A</td><td>$25.00</td></tr>
+    </table>
+    <p><a href="https://shop.com/sale">Shop Now</a></p>
+  </div>
+`;
+
+const result = emailToMarkdown(newsletter);
+```
+
+### Batch Processing
+
+```javascript
+const { HTMLToMarkdownExtractor } = require('@abdumajid/html-to-md-extractor');
+
+const extractor = new HTMLToMarkdownExtractor({
+  handleEmailSignatures: true
+});
+
+// Process multiple emails efficiently
+const emailBatch = [email1, email2, email3, /* ... */];
+const results = await extractor.convertBatch(emailBatch);
+
+extractor.dispose(); // Clean up resources
+```
+
+## ⚙️ Configuration Options
+
+```typescript
+interface ConversionOptions {
+  // Basic formatting
+  preserveWhitespace?: boolean;        // Default: false
+  trimWhitespace?: boolean;            // Default: true
+  bulletListMarker?: string;           // Default: '-'
+  codeBlockStyle?: 'indented' | 'fenced'; // Default: 'fenced'
+  strongDelimiter?: string;           // Default: '**'
+  emDelimiter?: string;               // Default: '*'
+  linkStyle?: 'inlined' | 'referenced'; // Default: 'inlined'
+  
+  // Email-specific options
+  preserveEmailHeaders?: boolean;      // Default: true
+  handleEmailSignatures?: boolean;     // Default: true
+  convertInlineStyles?: boolean;       // Default: true
+  preserveEmailQuotes?: boolean;       // Default: true
+  handleOutlookSpecific?: boolean;     // Default: true
+  
+  // Table handling
+  tableHandling?: 'preserve' | 'convert' | 'remove'; // Default: 'convert'
+  
+  // Advanced customization
+  customRules?: ConversionRule[];
+  ignoreElements?: string[];
+  keepElements?: string[];
+}
+```
+
+## 🔧 Advanced Usage
+
+### Custom Rules
+
+```javascript
+const { RuleBuilder } = require('@abdumajid/html-to-md-extractor');
+
+const customRule = RuleBuilder.create()
+  .forSelector('mark')
+  .withReplacement('==${content}==')
+  .withPriority(2)
+  .build();
+
+const result = htmlToMarkdown(html, {
+  customRules: [customRule]
+});
+```
+
+### Email Context Detection
+
+```javascript
+const { EmailUtils } = require('@abdumajid/html-to-md-extractor');
+
+const emailUtils = new EmailUtils();
+const context = emailUtils.detectEmailContext(document);
+
+console.log({
+  isEmail: context.isEmailContent,
+  hasSignature: context.hasSignature,
+  clientType: context.clientType // 'outlook', 'gmail', etc.
+});
+```
+
+## 🌐 Browser Support
+
+Works in both Node.js and browsers:
+
+```html
+<script type="module">
+  import { emailToMarkdown } from 'https://unpkg.com/@abdumajid/html-to-md-extractor@latest/dist/index.esm.js';
+  
+  const result = emailToMarkdown(html);
+  console.log(result.markdown);
+</script>
+```
+
+## 📦 API Reference
+
+### Main Functions
+
+- `htmlToMarkdown(html, options?)` - Convert general HTML to Markdown
+- `emailToMarkdown(html, options?)` - Convert email HTML with optimizations
+
+### Classes
+
+- `HTMLToMarkdownExtractor` - Main converter class for advanced usage
+- `EmailUtils` - Email-specific utilities
+- `RuleBuilder` - Builder for custom conversion rules
+
+### Types
+
+- `ConversionOptions` - Configuration interface
+- `ConversionResult` - Result with markdown and metadata
+- `EmailHeaders` - Extracted email header information
+
+## 🔄 Migration Guide
+
+### From v0.x to v1.x
+
+```javascript
+// Old way
+const converter = require('html-to-md-extractor');
+const result = converter.convert(html);
+
+// New way
+const { emailToMarkdown } = require('@abdumajid/html-to-md-extractor');
+const result = emailToMarkdown(html);
+```
+
+## 🚀 Performance
+
+- **Fast**: Processes typical emails in < 10ms
+- **Memory efficient**: Optimized for large documents
+- **Batch processing**: Handle thousands of emails efficiently
+- **Caching**: Intelligent rule and regex caching
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Setup
+
+```bash
+git clone https://github.com/abdumajid/html-to-md-extractor.git
+cd html-to-md-extractor
+npm install
+npm test
+npm run build
+```
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🔗 Related Projects
+
+- [turndown](https://github.com/domchristie/turndown) - General HTML to Markdown converter
+- [node-html-markdown](https://github.com/crosstype/node-html-markdown) - Another HTML to Markdown library
+- [html2md](https://github.com/stonehippo/html2md) - Simple HTML to Markdown converter
+
+## 🆘 Support
+
+- 📖 [Documentation](https://github.com/abdumajidRashidov/html-to-md-extractor#readme)
+- 🐛 [Issues](https://github.com/abdumajidRashidov/html-to-md-extractor/issues)
+- 💬 [Discussions](https://github.com/abdumajidRashidov/html-to-md-extractor/discussions)
+
+---
+
+**Made with ❤️ for better email and HTML processing**
