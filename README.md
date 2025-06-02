@@ -276,7 +276,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### Development Setup
 
 ```bash
-git clone https://github.com/abdumajid/html-to-md-extractor.git
+git clone https://github.com/abdumajidRashidov/html-to-md-extractor.git
 cd html-to-md-extractor
 npm install
 npm test
